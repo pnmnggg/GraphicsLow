@@ -1,0 +1,196 @@
+-- Services
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- สร้าง ScreenGui หลัก
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "MinimalLowGraphicsGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- ปุ่มเปิด/ปิด เมนู (Floating Button)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "ToggleMenu"
+toggleBtn.Size = UDim2.new(0, 40, 0, 40)
+toggleBtn.Position = UDim2.new(0, 20, 0, 100)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextSize = 18
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.Text = "⚙️"
+toggleBtn.Parent = screenGui
+
+local cornerToggle = Instance.new("UICorner")
+cornerToggle.CornerRadius = UDim.new(0, 8)
+cornerToggle.Parent = toggleBtn
+
+-- หน้าต่างหลัก (Main Frame)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 300, 0, 420)
+mainFrame.Position = UDim2.new(0, 70, 0, 100)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = false
+mainFrame.Parent = screenGui
+
+local cornerMain = Instance.new("UICorner")
+cornerMain.CornerRadius = UDim.new(0, 12)
+cornerMain.Parent = mainFrame
+
+-- Title
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 45)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "LOW GRAPHICS OPTIMIZER"
+titleLabel.TextColor3 = Color3.fromRGB(240, 240, 240)
+titleLabel.TextSize = 14
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Parent = mainFrame
+
+-- Scrolling Frame สำหรับเก็บปุ่มตั้งค่า
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -20, 1, -60)
+scrollFrame.Position = UDim2.new(0, 10, 0, 50)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 350)
+scrollFrame.ScrollBarThickness = 4
+scrollFrame.Parent = mainFrame
+
+local uiLayout = Instance.new("UIListLayout")
+uiLayout.Padding = UDim.new(0, 8)
+uiLayout.SortOrder = Enum.SortOrder.LayoutOrder
+uiLayout.Parent = scrollFrame
+
+-- ฟังก์ชันสร้าง Toggle สไตล์ Minimal
+local function createToggle(name, defaultState, callback)
+	local container = Instance.new("Frame")
+	container.Size = UDim2.new(1, 0, 0, 40)
+	container.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+	container.BorderSizePixel = 0
+	container.Parent = scrollFrame
+	
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = container
+	
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(0, 180, 1, 0)
+	label.Position = UDim2.new(0, 12, 0, 0)
+	label.BackgroundTransparency = 1
+	label.Text = name
+	label.TextColor3 = Color3.fromRGB(200, 200, 200)
+	label.TextSize = 13
+	label.Font = Enum.Font.GothamMedium
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = container
+	
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 44, 0, 24)
+	btn.Position = UDim2.new(1, -54, 0.5, -12)
+	btn.BackgroundColor3 = defaultState and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(60, 60, 60)
+	btn.Text = ""
+	btn.Parent = container
+	
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(1, 0)
+	btnCorner.Parent = btn
+	
+	local circle = Instance.new("Frame")
+	circle.Size = UDim2.new(0, 18, 0, 18)
+	circle.Position = defaultState and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+	circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	circle.Parent = btn
+	
+	local circleCorner = Instance.new("UICorner")
+	circleCorner.CornerRadius = UDim.new(1, 0)
+	circleCorner.Parent = circle
+	
+	local state = defaultState
+	btn.MouseButton1Click:Connect(function()
+		state = not state
+		if state then
+			btn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+			circle:TweenPosition(UDim2.new(1, -21, 0.5, -9), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.15, true)
+		else
+			btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+			circle:TweenPosition(UDim2.new(0, 3, 0.5, -9), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.15, true)
+		end
+		callback(state)
+	end)
+end
+
+-- ระบบเปิด/ปิดเมนูหลัก
+local menuOpen = false
+toggleBtn.MouseButton1Click:Connect(function()
+	menuOpen = not menuOpen
+	mainFrame.Visible = menuOpen
+end)
+
+-- --- ฟังก์ชันควบคุมทรัพยากร ---
+
+-- 1. ลบแสงเงาและเอฟเฟกต์หนักๆ
+createToggle("Disable Lighting FX", false, function(state)
+	if state then
+		Lighting.GlobalShadows = false
+		Lighting.Brightness = 1
+		for _, v in ipairs(Lighting:GetChildren()) do
+			if v:IsA("PostEffect") or v:IsA("Sky") or v:IsA("Atmosphere") or v:IsA("Clouds") then
+				v.Enabled = false
+			end
+		end
+	else
+		Lighting.GlobalShadows = true
+		for _, v in ipairs(Lighting:GetChildren()) do
+			if v:IsA("PostEffect") or v:IsA("Sky") or v:IsA("Atmosphere") or v:IsA("Clouds") then
+				v.Enabled = true
+			end
+		end
+	end
+end)
+
+-- 2. ปรับ Material เป็น Smooth / Plastic (ลดภาระ GPU)
+createToggle("Potato Textures", false, function(state)
+	for _, v in ipairs(Workspace:GetDescendants()) do
+		if v:IsA("BasePart") then
+			if state then
+				v.Material = Enum.Material.SmoothPlastic
+				v.Reflectance = 0
+			end
+		end
+	end
+end)
+
+-- 3. ปิดเสียงและเอฟเฟกต์พาร์ติเคิล
+createToggle("Remove Particles & FX", false, function(state)
+	for _, v in ipairs(Workspace:GetDescendants()) do
+		if v:IsA("ParticleEmitter") or v:IsA("Trail") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") then
+			v.Enabled = not state
+		end
+	end
+end)
+
+-- 4. โหมด Super Low Graphics (ตัดสิ่งไม่จำเป็น แต่คงตัวละคร/NPC ไว้ครบ)
+createToggle("Super Low Graphics", false, function(state)
+	for _, v in ipairs(Workspace:GetDescendants()) do
+		-- ตรวจสอบว่าเป็นสิ่งแวดล้อมชิ้นเล็กๆ หรือพืชพรรณรกตา
+		if v:IsA("BasePart") then
+			local isCharacter = v:IsDescendantOf(workspace) and (v.Parent:FindFirstChild("Humanoid") or v.Parent.Parent:FindFirstChild("Humanoid"))
+			
+			if not isCharacter then
+				-- เช็คว่าเป็นพวกต้นไม้ พุ่มไม้ หรือของตกแต่งชิ้นเล็ก
+				if v.Size.Magnitude < 15 and (v.Material == Enum.Material.Grass or v.Material == Enum.Material.LeafyGrass or v.Name:lower():find("tree") or v.Name:lower():find("bush")) then
+					v.Transparency = state and 1 or 0
+					v.CanCollide = not state
+				end
+			end
+		end
+	end
+end)
